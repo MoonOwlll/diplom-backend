@@ -1,42 +1,33 @@
 const db = require('../models/db');
 
-exports.submitResult = async (req, res) => {
+exports.submitResult = (req, res) => {
   const { userId, score, total } = req.body;
 
-  try {
-    // Обновлённая вставка: значения через $1, $2, $3, дата автоматически (NOW())
-    await db.query(
-      'INSERT INTO quiz_results (user_id, score, total, date) VALUES ($1, $2, $3, NOW())',
-      [userId, score, total]
-    );
-    res.json({ message: 'Результат сохранён' });
-  } catch (err) {
-    res.status(500).json({ message: 'Ошибка записи', error: err.message });
-  }
+  db.query(
+    'INSERT INTO quiz_results (user_id, score, total) VALUES (?, ?, ?)',
+    [userId, score, total],
+    (err) => {
+      if (err) return res.status(500).json({ message: 'Ошибка записи', error: err.message });
+      res.json({ message: 'Результат сохранён' });
+    }
+  );
 };
 
-exports.getUserResults = async (req, res) => {
+exports.getUserResults = (req, res) => {
   const userId = req.params.userId;
-  try {
-    const result = await db.query(
-      'SELECT score, total, date FROM quiz_results WHERE user_id = $1 ORDER BY date DESC LIMIT 1',
-      [userId]
-    );
-    res.json(result.rows[0] || null);
-  } catch (err) {
-    res.status(500).json({ message: 'Ошибка получения результата', error: err.message });
-  }
+  const sql = 'SELECT score, total, date FROM quiz_results WHERE user_id = ? ORDER BY date DESC LIMIT 1';
+  db.query(sql, [userId], (err, results) => {
+    if (err) return res.status(500).json({ message: 'Ошибка получения результата', error: err.message });
+    res.json(results[0] || null);
+  });
 };
 
-exports.getUserHistory = async (req, res) => {
+exports.getUserHistory = (req, res) => {
   const userId = req.params.userId;
-  try {
-    const result = await db.query(
-      'SELECT score, total, date FROM quiz_results WHERE user_id = $1 ORDER BY date DESC',
-      [userId]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ message: 'Ошибка при получении истории', error: err.message });
-  }
+  const sql = 'SELECT score, total, date FROM quiz_results WHERE user_id = ? ORDER BY date DESC';
+  db.query(sql, [userId], (err, results) => {
+    if (err) return res.status(500).json({ message: 'Ошибка при получении истории', error: err.message });
+    res.json(results);
+  });
 };
+
